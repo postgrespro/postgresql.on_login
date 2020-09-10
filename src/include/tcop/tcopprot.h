@@ -30,6 +30,11 @@ extern PGDLLIMPORT const char *debug_query_string;
 extern int	max_stack_depth;
 extern int	PostAuthDelay;
 
+/* Hook for plugins to get control at start and end of session */
+typedef void (*session_start_hook_type) (void);
+
+extern PGDLLIMPORT session_start_hook_type session_start_hook;
+
 /* GUC-configurable parameters */
 
 typedef enum

@@ -48,6 +48,8 @@
 #include "utils/rel.h"
 #include "utils/syscache.h"
 
+bool disable_on_login_trigger;
+
 typedef struct EventTriggerQueryState
 {
 	/* memory context for this state's objects */
@@ -130,6 +132,7 @@ CreateEventTrigger(CreateEventTrigStmt *stmt)
 	if (strcmp(stmt->eventname, "ddl_command_start") != 0 &&
 		strcmp(stmt->eventname, "ddl_command_end") != 0 &&
 		strcmp(stmt->eventname, "sql_drop") != 0 &&
+		strcmp(stmt->eventname, "connect") != 0 &&
 		strcmp(stmt->eventname, "table_rewrite") != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
@@ -562,6 +565,9 @@ EventTriggerCommonSetup(Node *parsetree,
 	ListCell   *lc;
 	List	   *runlist = NIL;
 
+	/* Get the command tag. */
+	tag = parsetree ? CreateCommandTag(parsetree) : CMDTAG_CONNECT;
+
 	/*
 	 * We want the list of command tags for which this procedure is actually
 	 * invoked to match up exactly with the list that CREATE EVENT TRIGGER
@@ -577,22 +583,18 @@ EventTriggerCommonSetup(Node *parsetree,
 	 * relevant command tag.
 	 */
 #ifdef USE_ASSERT_CHECKING
+	if (event == EVT_DDLCommandStart ||
+		event == EVT_DDLCommandEnd ||
+		event == EVT_SQLDrop ||
+		event == EVT_Connect)
 	{
-		CommandTag	dbgtag;
-
-		dbgtag = CreateCommandTag(parsetree);
-		if (event == EVT_DDLCommandStart ||
-			event == EVT_DDLCommandEnd ||
-			event == EVT_SQLDrop)
-		{
-			if (!command_tag_event_trigger_ok(dbgtag))
-				elog(ERROR, "unexpected command tag \"%s\"", GetCommandTagName(dbgtag));
-		}
-		else if (event == EVT_TableRewrite)
-		{
-			if (!command_tag_table_rewrite_ok(dbgtag))
-				elog(ERROR, "unexpected command tag \"%s\"", GetCommandTagName(dbgtag));
-		}
+		if (!command_tag_event_trigger_ok(tag))
+			elog(ERROR, "unexpected command tag \"%s\"", GetCommandTagName(tag));
+	}
+	else if (event == EVT_TableRewrite)
+	{
+		if (!command_tag_table_rewrite_ok(tag))
+			elog(ERROR, "unexpected command tag \"%s\"", GetCommandTagName(tag));
 	}
 #endif
 
@@ -600,9 +602,6 @@ EventTriggerCommonSetup(Node *parsetree,
 	cachelist = EventCacheLookup(event);
 	if (cachelist == NIL)
 		return NIL;
-
-	/* Get the command tag. */
-	tag = CreateCommandTag(parsetree);
 
 	/*
 	 * Filter list of event triggers by command tag, and copy them into our
@@ -798,6 +797,46 @@ EventTriggerSQLDrop(Node *parsetree)
 
 	/* Cleanup. */
 	list_free(runlist);
+}
+
+/*
+ * Fire connect triggers.
+ */
+void
+EventTriggerOnConnect(void)
+{
+	List	   *runlist;
+	EventTriggerData trigdata;
+
+	/*
+	 * See EventTriggerDDLCommandStart for a discussion about why event
+	 * triggers are disabled in single user mode.
+	 */
+	if (!IsUnderPostmaster || !OidIsValid(MyDatabaseId) || RecoveryInProgress() || disable_on_login_trigger)
+		return;
+
+	StartTransactionCommand();
+	PushActiveSnapshot(GetTransactionSnapshot());
+
+    runlist = EventTriggerCommonSetup(NULL,
+									  EVT_Connect, "connect",
+									  &trigdata);
+
+	if (runlist != NIL)
+	{
+		/*
+		 * Make sure anything the main command did will be visible to the event
+		 * triggers.
+		 */
+		CommandCounterIncrement();
+
+		EventTriggerInvoke(runlist, &trigdata);
+
+		/* Cleanup. */
+		list_free(runlist);
+	}
+	PopActiveSnapshot();
+	CommitTransactionCommand();
 }
 
 

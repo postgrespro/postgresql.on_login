@@ -28,11 +28,17 @@
      An event trigger fires whenever the event with which it is associated
      occurs in the database in which it is defined. Currently, the only
      supported events are
+     <literal>connect</literal>,
      <literal>ddl_command_start</literal>,
      <literal>ddl_command_end</literal>,
      <literal>table_rewrite</literal>
      and <literal>sql_drop</literal>.
      Support for additional events may be added in future releases.
+   </para>
+
+   <para>
+     The <literal>connect</literal> event occurs on backend start when connection with user was established.
+     This event trigger can be set only by database owner and effect only this database.
    </para>
 
    <para>

@@ -43,6 +43,7 @@
 #include "commands/async.h"
 #include "commands/prepare.h"
 #include "commands/trigger.h"
+#include "commands/event_trigger.h"
 #include "commands/user.h"
 #include "commands/vacuum.h"
 #include "commands/variable.h"
@@ -927,6 +928,16 @@ static const unit_conversion time_unit_conversion_table[] =
 
 static struct config_bool ConfigureNamesBool[] =
 {
+	{
+		{"disable_on_login_trigger", PGC_SUSET, DEVELOPER_OPTIONS,
+			gettext_noop("Disable on login trigger."),
+			gettext_noop("In case of errors in ON CONNECTION TRIGGER procedure this GUC can be used to disable trigger activation and provide access to the database."),
+			GUC_EXPLAIN
+		},
+		&disable_on_login_trigger,
+		false,
+		NULL, NULL, NULL
+	},
 	{
 		{"enable_seqscan", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Enables the planner's use of sequential-scan plans."),
