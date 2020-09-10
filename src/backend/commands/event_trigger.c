@@ -823,7 +823,6 @@ EventTriggerOnConnect(void)
 
 	if (runlist != NIL)
 	{
-		int save_client_min_messages = client_min_messages;
 		MemoryContext old_context = CurrentMemoryContext;
 		/*
 		 * Make sure anything the main command did will be visible to the event
@@ -834,16 +833,14 @@ EventTriggerOnConnect(void)
 		/* Run the triggers. */
 		PG_TRY();
 		{
-			client_min_messages = FATAL;
 			EventTriggerInvoke(runlist, &trigdata);
 			list_free(runlist);
-			client_min_messages = save_client_min_messages;
 		}
 		PG_CATCH();
 		{
-			client_min_messages = save_client_min_messages;
+			ErrorData* error;
 			MemoryContextSwitchTo(old_context);
-
+			error = CopyErrorData();
 			/*
 			 * Try to ignore error for superuser to make it possible to login even in case of errors
 			 * during trigger execution
@@ -851,8 +848,8 @@ EventTriggerOnConnect(void)
 			if (!superuser())
 				PG_RE_THROW();
 
-			EmitErrorReport();
 			FlushErrorState();
+			elog(NOTICE, "start_session trigger failed with message %s", error->message);
 			AbortCurrentTransaction();
 			return;
 		}
