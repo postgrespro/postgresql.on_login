@@ -812,7 +812,7 @@ EventTriggerOnConnect(void)
 	 * See EventTriggerDDLCommandStart for a discussion about why event
 	 * triggers are disabled in single user mode.
 	 */
-	if (!IsUnderPostmaster || !OidIsValid(MyDatabaseId) || RecoveryInProgress() || disable_session_start_trigger)
+	if (!IsUnderPostmaster || !OidIsValid(MyDatabaseId) || disable_session_start_trigger)
 		return;
 
 	StartTransactionCommand();
@@ -829,7 +829,25 @@ EventTriggerOnConnect(void)
 		 */
 		CommandCounterIncrement();
 
-		EventTriggerInvoke(runlist, &trigdata);
+		/* Run the triggers. */
+		PG_TRY();
+		{
+			EventTriggerInvoke(runlist, &trigdata);
+		}
+		PG_CATCH();
+		{
+			/*
+			 * Try to ignore error for superuser to make it possible to login even in case of errors
+			 * during trigger execution
+			 */
+			if (!superuser())
+				PG_RE_THROW();
+
+			EmitErrorReport();
+			FlushErrorState();
+			AbortCurrentTransaction();
+		}
+		PG_END_TRY();
 
 		/* Cleanup. */
 		list_free(runlist);
