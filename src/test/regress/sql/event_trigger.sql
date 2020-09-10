@@ -430,7 +430,7 @@ DROP EVENT TRIGGER start_rls_command;
 DROP EVENT TRIGGER end_rls_command;
 DROP EVENT TRIGGER sql_drop_command;
 
--- On connect triggers
+-- On session start triggers
 create table connects(id serial, who text);
 create function on_login_proc() returns event_trigger as $$
 begin
@@ -438,7 +438,7 @@ begin
   raise notice 'You are welcome!';
 end;
 $$ language plpgsql;
-create event trigger on_login_trigger on connect execute procedure on_login_proc();
+create event trigger on_login_trigger on session_start execute procedure on_login_proc();
 alter event trigger on_login_trigger enable always;
 \c
 select * from connects;

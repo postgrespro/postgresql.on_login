@@ -929,12 +929,12 @@ static const unit_conversion time_unit_conversion_table[] =
 static struct config_bool ConfigureNamesBool[] =
 {
 	{
-		{"disable_on_login_trigger", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Disable on login trigger."),
-			gettext_noop("In case of errors in ON CONNECTION TRIGGER procedure this GUC can be used to disable trigger activation and provide access to the database."),
+		{"disable_session_start_trigger", PGC_SUSET, DEVELOPER_OPTIONS,
+			gettext_noop("Disable on session_start event trigger."),
+			gettext_noop("In case of errors in ON session_start EVENT TRIGGER procedure this GUC can be used to disable trigger activation and provide access to the database."),
 			GUC_EXPLAIN
 		},
-		&disable_on_login_trigger,
+		&disable_session_start_trigger,
 		false,
 		NULL, NULL, NULL
 	},

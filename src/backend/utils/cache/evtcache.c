@@ -169,7 +169,7 @@ BuildEventTriggerCache(void)
 			event = EVT_SQLDrop;
 		else if (strcmp(evtevent, "table_rewrite") == 0)
 			event = EVT_TableRewrite;
-		else if (strcmp(evtevent, "connect") == 0)
+		else if (strcmp(evtevent, "session_start") == 0)
 			event = EVT_Connect;
 		else
 			continue;

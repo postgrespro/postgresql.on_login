@@ -21,7 +21,7 @@
 #include "tcop/deparse_utility.h"
 #include "utils/aclchk_internal.h"
 
-extern bool disable_on_login_trigger; /* GUC */
+extern bool disable_session_start_trigger; /* GUC */
 
 typedef struct EventTriggerData
 {

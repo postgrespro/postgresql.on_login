@@ -48,7 +48,7 @@
 #include "utils/rel.h"
 #include "utils/syscache.h"
 
-bool disable_on_login_trigger;
+bool disable_session_start_trigger;
 
 typedef struct EventTriggerQueryState
 {
@@ -132,7 +132,7 @@ CreateEventTrigger(CreateEventTrigStmt *stmt)
 	if (strcmp(stmt->eventname, "ddl_command_start") != 0 &&
 		strcmp(stmt->eventname, "ddl_command_end") != 0 &&
 		strcmp(stmt->eventname, "sql_drop") != 0 &&
-		strcmp(stmt->eventname, "connect") != 0 &&
+		strcmp(stmt->eventname, "session_start") != 0 &&
 		strcmp(stmt->eventname, "table_rewrite") != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
@@ -812,7 +812,7 @@ EventTriggerOnConnect(void)
 	 * See EventTriggerDDLCommandStart for a discussion about why event
 	 * triggers are disabled in single user mode.
 	 */
-	if (!IsUnderPostmaster || !OidIsValid(MyDatabaseId) || RecoveryInProgress() || disable_on_login_trigger)
+	if (!IsUnderPostmaster || !OidIsValid(MyDatabaseId) || RecoveryInProgress() || disable_session_start_trigger)
 		return;
 
 	StartTransactionCommand();
