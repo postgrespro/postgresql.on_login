@@ -816,7 +816,6 @@ EventTriggerOnConnect(void)
 		return;
 
 	StartTransactionCommand();
-	PushActiveSnapshot(GetTransactionSnapshot());
 
     runlist = EventTriggerCommonSetup(NULL,
 									  EVT_Connect, "connect",
@@ -835,7 +834,6 @@ EventTriggerOnConnect(void)
 		/* Cleanup. */
 		list_free(runlist);
 	}
-	PopActiveSnapshot();
 	CommitTransactionCommand();
 }
 
