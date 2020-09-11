@@ -824,6 +824,7 @@ EventTriggerOnConnect(void)
 	if (runlist != NIL)
 	{
 		MemoryContext old_context = CurrentMemoryContext;
+		bool is_superuser = superuser();
 		/*
 		 * Make sure anything the main command did will be visible to the event
 		 * triggers.
@@ -839,15 +840,15 @@ EventTriggerOnConnect(void)
 		PG_CATCH();
 		{
 			ErrorData* error;
-			MemoryContextSwitchTo(old_context);
-			error = CopyErrorData();
 			/*
 			 * Try to ignore error for superuser to make it possible to login even in case of errors
 			 * during trigger execution
 			 */
-			if (!superuser())
+			if (!is_superuser)
 				PG_RE_THROW();
 
+			MemoryContextSwitchTo(old_context);
+			error = CopyErrorData();
 			FlushErrorState();
 			elog(NOTICE, "start_session trigger failed with message %s", error->message);
 			AbortCurrentTransaction();
