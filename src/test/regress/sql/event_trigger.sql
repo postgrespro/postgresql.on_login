@@ -444,7 +444,16 @@ alter event trigger on_login_trigger enable always;
 select * from connects;
 \c
 select * from connects;
+
+-- Test handing exeptions in session_start trigger
+
+drop table connects;
+-- superuser should ignore error
+\c
+-- suppress troigger firing
+\c "dbname=regression options='-c disable_session_start_trigger=true'"
+
+
+-- Cleanup
 drop event trigger on_login_trigger;
 drop function on_login_proc();
-drop table connects;
-

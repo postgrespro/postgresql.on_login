@@ -35,9 +35,23 @@
      and <literal>sql_drop</literal>.
      Support for additional events may be added in future releases.
    </para>
-
+<literal>table_rewrite</literal>
    <para>
      The <literal>session_start</literal> event occurs on backend start when connection with user was established.
+     As far as bug in trigger procedure can prevent normal login to the system, there are two mechanisms
+     for preventing it:
+     <itemizedlist>
+      <listitem>
+       <para>
+         GUC <literal>disable_session_start_trigger</literal> which makes it possible to disable firing triggers on session startup.
+       </para>
+      <listitem>
+       <para>
+         Ignoring errors in trigger procedure for superuser. Error message is delivered to client as <literal>NOTICE</literal>
+         in this case
+       </para>
+      </listitem>
+     <itemizedlist>
    </para>
 
    <para>
