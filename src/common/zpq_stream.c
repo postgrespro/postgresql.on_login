@@ -51,7 +51,7 @@ typedef struct
 
 #if HAVE_LIBZSTD
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <zstd.h>
 
 #define ZSTD_BUFFER_SIZE (8*1024)
@@ -226,7 +226,7 @@ zstd_name(void)
 
 #if HAVE_LIBZ
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <zlib.h>
 
 #define ZLIB_BUFFER_SIZE 8192
