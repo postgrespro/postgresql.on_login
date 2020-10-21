@@ -2911,7 +2911,8 @@ psql_completion(const char *text, int start, int end)
 
 /* DEALLOCATE */
 	else if (Matches("DEALLOCATE"))
-		COMPLETE_WITH_QUERY(Query_for_list_of_prepared_statements);
+		COMPLETE_WITH_QUERY(Query_for_list_of_prepared_statements
+							" UNION SELECT 'ALL'");
 
 /* DECLARE */
 	else if (Matches("DECLARE", MatchAny))
@@ -3076,19 +3077,27 @@ psql_completion(const char *text, int start, int end)
 		COMPLETE_WITH("SELECT", "INSERT", "DELETE", "UPDATE", "DECLARE");
 
 /* FETCH && MOVE */
-	/* Complete FETCH with one of FORWARD, BACKWARD, RELATIVE */
-	else if (Matches("FETCH|MOVE"))
-		COMPLETE_WITH("ABSOLUTE", "BACKWARD", "FORWARD", "RELATIVE");
-	/* Complete FETCH <sth> with one of ALL, NEXT, PRIOR */
-	else if (Matches("FETCH|MOVE", MatchAny))
-		COMPLETE_WITH("ALL", "NEXT", "PRIOR");
 
 	/*
-	 * Complete FETCH <sth1> <sth2> with "FROM" or "IN". These are equivalent,
+	 * Complete FETCH with one of ABSOLUTE, BACKWARD, FORWARD, RELATIVE, ALL,
+	 * NEXT, PRIOR, FIRST, LAST
+	 */
+	else if (Matches("FETCH|MOVE"))
+		COMPLETE_WITH("ABSOLUTE", "BACKWARD", "FORWARD", "RELATIVE",
+					  "ALL", "NEXT", "PRIOR", "FIRST", "LAST");
+
+	/* Complete FETCH BACKWARD or FORWARD with one of ALL, FROM, IN */
+	else if (Matches("FETCH|MOVE", "BACKWARD|FORWARD"))
+		COMPLETE_WITH("ALL", "FROM", "IN");
+
+	/*
+	 * Complete FETCH <direction> with "FROM" or "IN". These are equivalent,
 	 * but we may as well tab-complete both: perhaps some users prefer one
 	 * variant or the other.
 	 */
-	else if (Matches("FETCH|MOVE", MatchAny, MatchAny))
+	else if (Matches("FETCH|MOVE", "ABSOLUTE|BACKWARD|FORWARD|RELATIVE",
+					 MatchAnyExcept("FROM|IN")) ||
+			 Matches("FETCH|MOVE", "ALL|NEXT|PRIOR|FIRST|LAST"))
 		COMPLETE_WITH("FROM", "IN");
 
 /* FOREIGN DATA WRAPPER */
@@ -3293,6 +3302,17 @@ psql_completion(const char *text, int start, int end)
 		COMPLETE_WITH("FOREIGN SCHEMA");
 	else if (Matches("IMPORT", "FOREIGN"))
 		COMPLETE_WITH("SCHEMA");
+	else if (Matches("IMPORT", "FOREIGN", "SCHEMA", MatchAny))
+		COMPLETE_WITH("EXCEPT (", "FROM SERVER", "LIMIT TO (");
+	else if (TailMatches("LIMIT", "TO", "(*)") ||
+			 TailMatches("EXCEPT", "(*)"))
+		COMPLETE_WITH("FROM SERVER");
+	else if (TailMatches("FROM", "SERVER", MatchAny))
+		COMPLETE_WITH("INTO");
+	else if (TailMatches("FROM", "SERVER", MatchAny, "INTO"))
+		COMPLETE_WITH_QUERY(Query_for_list_of_schemas);
+	else if (TailMatches("FROM", "SERVER", MatchAny, "INTO", MatchAny))
+		COMPLETE_WITH("OPTIONS (");
 
 /* INSERT --- can be inside EXPLAIN, RULE, etc */
 	/* Complete INSERT with "INTO" */
