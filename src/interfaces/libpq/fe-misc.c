@@ -61,10 +61,10 @@ static int	pqSocketCheck(PGconn *conn, int forRead, int forWrite,
 						  time_t end_time);
 static int	pqSocketPoll(int sock, int forRead, int forWrite, time_t end_time);
 
-#define pq_read_conn(conn,processed)									\
+#define pq_read_conn(conn)												\
 	(conn->zstream														\
 	 ? zpq_read(conn->zstream, conn->inBuffer + conn->inEnd,			\
-				conn->inBufSize - conn->inEnd, &processed)				\
+				conn->inBufSize - conn->inEnd)							\
 	 : pqsecure_read(conn, conn->inBuffer + conn->inEnd,				\
 					 conn->inBufSize - conn->inEnd))
 
@@ -625,7 +625,6 @@ pqReadData(PGconn *conn)
 {
 	int			someread = 0;
 	int			nread;
-	size_t      processed;
 
 	if (conn->sock == PGINVALID_SOCKET)
 	{
@@ -674,9 +673,7 @@ pqReadData(PGconn *conn)
 
 	/* OK, try to read some data */
 retry3:
-	processed = 0;
-	nread = pq_read_conn(conn,processed);
-	conn->inEnd += processed;
+	nread = pq_read_conn(conn);
 	if (nread < 0)
 	{
 		if (nread == ZPQ_DECOMPRESS_ERROR)
@@ -778,9 +775,7 @@ retry3:
 	 * arrived.
 	 */
 retry4:
-	processed = 0;
-	nread = pq_read_conn(conn,processed);
-	conn->inEnd += processed;
+	nread = pq_read_conn(conn);
 
 	if (nread < 0)
 	{

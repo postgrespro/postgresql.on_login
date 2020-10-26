@@ -20,10 +20,10 @@ typedef struct
 
 	/*
 	 * Read up to "size" raw (decompressed) bytes.
-	 * Returns number of decompressed bytes or error code. In the last case amount of decompressed bytes is stored in *processed.
+	 * Returns number of decompressed bytes or error code.
 	 * Error code is either ZPQ_DECOMPRESS_ERROR either error code returned by the rx function.
 	 */
-	ssize_t (*read)(ZpqStream *zs, void *buf, size_t size, size_t *processed);
+	ssize_t (*read)(ZpqStream *zs, void *buf, size_t size);
 
 	/*
 	 * Write up to "size" raw (decompressed) bytes.
@@ -103,7 +103,7 @@ zstd_create(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg)
 }
 
 static ssize_t
-zstd_read(ZpqStream *zstream, void *buf, size_t size, size_t *processed)
+zstd_read(ZpqStream *zstream, void *buf, size_t size)
 {
 	ZstdStream* zs = (ZstdStream*)zstream;
 	ssize_t rc;
@@ -138,7 +138,6 @@ zstd_read(ZpqStream *zstream, void *buf, size_t size, size_t *processed)
 		}
 		else /* read failed */
 		{
-			*processed = out.pos;
 			zs->rx_total_raw += out.pos;
 			return rc;
 		}
@@ -426,9 +425,9 @@ zpq_create(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg)
 }
 
 ssize_t
-zpq_read(ZpqStream *zs, void *buf, size_t size, size_t* processed)
+zpq_read(ZpqStream *zs, void *buf, size_t size)
 {
-	return zpq_algorithms[zpq_algorithm_impl].read(zs, buf, size, processed);
+	return zpq_algorithms[zpq_algorithm_impl].read(zs, buf, size);
 }
 
 ssize_t
