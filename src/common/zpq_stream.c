@@ -283,7 +283,7 @@ zlib_create(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg)
 }
 
 static ssize_t
-zlib_read(ZpqStream *zstream, void *buf, size_t size, size_t *processed)
+zlib_read(ZpqStream *zstream, void *buf, size_t size)
 {
 	ZlibStream* zs = (ZlibStream*)zstream;
 	int rc;
@@ -319,7 +319,6 @@ zlib_read(ZpqStream *zstream, void *buf, size_t size, size_t *processed)
 		}
 		else
 		{
-			*processed = size - zs->rx.avail_out;
 			return rc;
 		}
 	}
