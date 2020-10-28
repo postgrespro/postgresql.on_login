@@ -3259,10 +3259,11 @@ keep_going:						/* We will come back to here until there is
 												  "server is not supported requested compression algorithm\n"));
 							goto error_return;
 						}
-						/* mark byte consumed */
-						conn->inStart = conn->inCursor;
 						Assert(!conn->zstream);
-						conn->zstream = zpq_create((zpq_tx_func)pqsecure_write, (zpq_rx_func)pqsecure_read, conn);
+						conn->zstream = zpq_create((zpq_tx_func)pqsecure_write, (zpq_rx_func)pqsecure_read, conn,
+												   &conn->inBuffer[conn->inCursor], conn->inEnd-conn->inCursor);
+						/* reset buffer */
+						conn->inStart = conn->inCursor = conn->inEnd = 0;
 					} else
 						break;
 				}

@@ -14,9 +14,14 @@ typedef struct
 	char    (*name)(void);
 
 	/*
-	 * Create compression stream with using rx/tx function for fetching/sending compressed data
+	 * Create compression stream with using rx/tx function for fetching/sending compressed data.
+	 * tx_func: function foir writing compressed data in underlying stream
+	 * rx_func: function for receiving compressed daat from underying stream
+	 * arg: context passed to the function
+     * rx_data: received data (compressed data already fetched from input stream)
+	 * rx_data_size: size of data fetched from input stream
 	 */
-	ZpqStream* (*create)(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg);
+	ZpqStream* (*create)(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg, char* rx_data, size_t rx_data_size);
 
 	/*
 	 * Read up to "size" raw (decompressed) bytes.
@@ -78,9 +83,10 @@ typedef struct ZstdStream
 } ZstdStream;
 
 static ZpqStream*
-zstd_create(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg)
+zstd_create(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg, char* rx_data, size_t rx_data_size)
 {
 	ZstdStream* zs = (ZstdStream*)malloc(sizeof(ZstdStream));
+
 	zs->tx_stream = ZSTD_createCStream();
 	ZSTD_initCStream(zs->tx_stream, ZSTD_COMPRESSION_LEVEL);
 	zs->rx_stream = ZSTD_createDStream();
@@ -99,6 +105,11 @@ zstd_create(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg)
 	zs->arg = arg;
 	zs->tx_total = zs->tx_total_raw = 0;
 	zs->rx_total = zs->rx_total_raw = 0;
+
+	zs->rx.size = rx_data_size;
+	Assert(rx_data_size < ZSTD_BUFFER_SIZE);
+	memcpy(zs->rx_buf, rx_data, rx_data_size);
+
 	return (ZpqStream*)zs;
 }
 
@@ -247,7 +258,7 @@ typedef struct ZlibStream
 } ZlibStream;
 
 static ZpqStream*
-zlib_create(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg)
+zlib_create(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg, char* rx_data, size_t rx_data_size)
 {
 	int rc;
 	ZlibStream* zs = (ZlibStream*)malloc(sizeof(ZlibStream));
@@ -273,7 +284,10 @@ zlib_create(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg)
 		return NULL;
 	}
 	Assert(zs->rx.next_in == zs->rx_buf && zs->rx.avail_in == ZLIB_BUFFER_SIZE);
-	zs->rx.avail_in = 0;
+
+	zs->rx.avail_in = rx_data_size;
+	Assert(rx_data_size < ZLIB_BUFFER_SIZE);
+	memcpy(zs->rx_buf, rx_data, rx_data_size);
 
 	zs->rx_func = rx_func;
 	zs->tx_func = tx_func;
@@ -418,9 +432,9 @@ static int zpq_algorithm_impl;
 
 
 ZpqStream*
-zpq_create(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg)
+zpq_create(zpq_tx_func tx_func, zpq_rx_func rx_func, void *arg, char* rx_data, size_t rx_data_size)
 {
-	return zpq_algorithms[zpq_algorithm_impl].create(tx_func, rx_func, arg);
+	return zpq_algorithms[zpq_algorithm_impl].create(tx_func, rx_func, arg, rx_data, rx_data_size);
 }
 
 ssize_t

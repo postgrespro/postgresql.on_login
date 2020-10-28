@@ -224,7 +224,7 @@ pq_configure(Port* port)
 		}
 
 		compression[5] = compression_algorithm;
-		/* Send 'z' message to the client with selectde comression algorithm ('n' if match is ont found) */
+		/* Send 'z' message to the client with selected compression algorithm ('n' if match is ont found) */
 		socket_set_nonblocking(false);
 		while ((rc = secure_write(MyProcPort, compression, sizeof(compression))) < 0
 			   && errno == EINTR);
@@ -233,7 +233,7 @@ pq_configure(Port* port)
 
 		/* initialize compression */
 		if (zpq_set_algorithm(compression_algorithm))
-			PqStream = zpq_create((zpq_tx_func)secure_write, (zpq_rx_func)secure_read, MyProcPort);
+			PqStream = zpq_create((zpq_tx_func)secure_write, (zpq_rx_func)secure_read, MyProcPort, NULL, 0);
 	}
 	return 0;
 }
@@ -1005,14 +1005,12 @@ pq_recvbuf(bool nowait)
 	/* Can fill buffer from PqRecvLength and upwards */
 	for (;;)
 	{
-		size_t processed = 0;
 		/* If srteaming compression is enabled then use correpondent comression read function. */
 		r = PqStream
 			? zpq_read(PqStream, PqRecvBuffer + PqRecvLength,
-					   PQ_RECV_BUFFER_SIZE - PqRecvLength, &processed)
+					   PQ_RECV_BUFFER_SIZE - PqRecvLength)
 			: secure_read(MyProcPort, PqRecvBuffer + PqRecvLength,
 						  PQ_RECV_BUFFER_SIZE - PqRecvLength);
-		PqRecvLength += processed;
 
 		if (r < 0)
 		{
