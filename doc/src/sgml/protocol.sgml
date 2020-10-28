@@ -3280,7 +3280,7 @@ AuthenticationGSSContinue (B)
 </varlistentry>
 <varlistentry>
 <term>
-        Int32(8)
+        Int32
 </term>
 <listitem>
 <para>
